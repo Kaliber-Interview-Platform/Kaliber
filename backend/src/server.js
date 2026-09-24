@@ -8,7 +8,6 @@ dns.setServers(["1.1.1.1","8.8.8.8"]);
 
 connectDB();
 dotenv.config();
-console.log("MONGO_URI loaded:", !!process.env.MONGO_URI);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
