@@ -17,7 +17,10 @@ app.use(express.json());
 // Always import and use your routes after initializing express
 
 import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 // This is your first API route!
 app.get('/', (req, res) => {
