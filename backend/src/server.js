@@ -14,20 +14,17 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Always import and use your routes after initializing express
-
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 
-// This is your first API route!
 app.get('/', (req, res) => {
   res.json({ message: "Welcome to Kaliber's Backend!" });
 });
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`API endpoint available at http://localhost:${PORT}/`);
+  console.log(`http://localhost:${PORT}/`);
 });
