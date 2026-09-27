@@ -1,6 +1,6 @@
 import express from "express";
 
-import { createJobPost,getJobPostById,getAllJobPosts,updateJobPost,deleteJobPost } from "../controller/jobPostController.js";
+import { createJobPost,getJobPostById,getAllJobPosts,updateJobPost,deleteJobPost } from "../controllers/jobPostController.js";
 
 import authorizeRoles from "../middlewares/roleMiddleware.js";
 import protect from "../middlewares/Protect.js";

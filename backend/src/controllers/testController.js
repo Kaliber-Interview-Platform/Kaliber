@@ -6,11 +6,9 @@ import { gradeSubmission, LANGUAGE_IDS } from "../utils/judge0.js";
 
 // pre-determined mix per difficulty level - tweak as needed
 const difficultyConfig = {
-  1: { easy: 7, medium: 2, hard: 1 },
-  2: { easy: 5, medium: 4, hard: 1 },
-  3: { easy: 3, medium: 5, hard: 2 },
-  4: { easy: 2, medium: 4, hard: 4 },
-  5: { easy: 1, medium: 3, hard: 6 }
+  "easy": { easy: 7, medium: 2, hard: 1 },
+  "medium": { easy: 3, medium: 5, hard: 2 },
+  "hard": { easy: 2, medium: 3, hard: 5 }
 };
 
 const pickRandomQuestions = async (difficulty, count) => {

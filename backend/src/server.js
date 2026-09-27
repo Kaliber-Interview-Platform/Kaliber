@@ -16,11 +16,21 @@ app.use(express.json());
 
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
-import jobRoutes from "./routes/jobRoutes.js"
+import jobRoutes from "./routes/jobRoutes.js";
+import applicationRoutes from "./routes/applicationRoutes.js";
+import questionRoutes from "./routes/questionRoutes.js";
+import testRoutes from "./routes/testRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/jobs',jobRoutes);
+app.use("/api/applications", applicationRoutes);
+app.use("/api/questions", questionRoutes);
+app.use("/api/tests", testRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/notifications", notificationRoutes)
 
 app.get('/', (req, res) => {
   res.json({ message: "Welcome to Kaliber's Backend!" });
