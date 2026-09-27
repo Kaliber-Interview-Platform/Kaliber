@@ -1,7 +1,4 @@
 import JobPost from "../models/JobPost.js";
-
-// Create a new job post
-
 export const createJobPost = async(req,res) => { 
     try{
         const{
@@ -59,8 +56,6 @@ export const createJobPost = async(req,res) => {
     }
 };
 
-// get all job posts
-
 export const getAllJobPosts = async(req,res) => {
     try{
         const jobPosts= await JobPost.find().populate("postedBy","name email").sort({createdAt:-1});
@@ -75,8 +70,6 @@ export const getAllJobPosts = async(req,res) => {
         });
     }
 };
-
-// get single job post
 
 export const getJobPostById = async(req,res) => {
     try{
@@ -109,7 +102,6 @@ export const updateJobPost = async(req,res) => {
             });
         }
 
-        // Only the person who created the post can update it
         if (jobPost.postedBy.toString() !==req.user.id){
             return res.status(403).json({
                 message:"You are not allowed to update this Job Post."
@@ -169,7 +161,6 @@ export const deleteJobPost = async(req,res) => {
                 message:"Job post not found"
             });
         }
-        // Only the person who created the post can delete it
         if (jobPost.postedBy.toString() !== req.user.id){
             return res.status(403).json({
                 message:"You are not allowed to delete this post"

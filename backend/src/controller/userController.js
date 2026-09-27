@@ -1,8 +1,6 @@
 import User from "../models/User.js";
 import bycrypt from "bcryptjs";
 
-// Get user profile
-
 export const getUser = async(req,res) =>{
     try{
         const user= await User.findById(req.user.id).select('-password');

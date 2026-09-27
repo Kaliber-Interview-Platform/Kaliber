@@ -1,8 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
- 
-// verifies the JWT and attaches the logged-in user to req.user.
-// must run BEFORE authorizeRoles on any protected route.
+
 const protect = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;

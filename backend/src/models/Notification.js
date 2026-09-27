@@ -5,6 +5,9 @@ const notificationSchema = new mongoose.Schema({
   message: { type: String, required: true },
   read: { type: Boolean, default: false },
 
+  type: { type: String, enum: ["system", "admin_message"], default: "system" },
+  sentBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+
   createdAt: { type: Date, default: Date.now }
 });
 
