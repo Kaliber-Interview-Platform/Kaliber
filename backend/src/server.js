@@ -18,9 +18,11 @@ app.use(express.json());
 
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import jobRoutes from "./routes/jobRoutes.js"
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/jobs',jobRoutes);
 
 // This is your first API route!
 app.get('/', (req, res) => {

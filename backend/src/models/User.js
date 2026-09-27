@@ -16,8 +16,8 @@ const userSchema = new mongoose.Schema({
 
   savedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: "JobPost" }],
 
-  createdAt: { type: Date, default: Date.now }
-});
+}, {timestamps: true}
+);
 
 const User = mongoose.models.User ||  mongoose.model("User", userSchema);
 export default User;
