@@ -1,6 +1,7 @@
 import TestInstance from "../models/TestInstance.js";
 import Application from "../models/Application.js";
 import Question from "../models/Question.js";
+import JobPost from "../models/JobPost.js";
 import { createNotification } from "./notificationController.js";
 import { gradeSubmission, LANGUAGE_IDS } from "../utils/judge0.js";
 
@@ -29,6 +30,22 @@ export const assignTest = async (req, res) => {
     if (!application) {
       return res.status(404).json({ message: "Application not found" });
     }
+
+    const jobPost = await JobPost.findById(application.jobPost);
+
+    if (!jobPost) {
+      return res.status(404).json({
+        message:"Job Post not found"
+      });
+    }
+
+    if (jobPost.postedBy.toString() !== req.user.id) {
+      return res.status(403).json({
+        message:"You are not allowed to assign a test to this application"
+      });
+    }
+
+
 
     const config = difficultyConfig[difficultyLevel];
     if (!config) {
@@ -97,6 +114,14 @@ export const submitAnswer = async (req, res) => {
     if (!testInstance) {
       return res.status(404).json({ message: "Test not found" });
     }
+
+    if (testInstance.completedAt){
+      return res.status(400).json({
+        message:"Test has already been completed"
+      })
+    }
+
+    
     if (testInstance.candidate.toString() !== req.user.id) {
       return res.status(403).json({ message: "Not your test" });
     }
