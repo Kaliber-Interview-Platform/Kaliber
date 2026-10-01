@@ -1,7 +1,5 @@
 import Notification from "../models/Notification.js";
 
-// INTERNAL HELPER - not a route, just a function other controllers import and call
-// whenever something happens that the user should know about (e.g. status changed)
 export const createNotification = async (userId, message, type = "system", sentBy = null) => {
   await Notification.create({ user: userId, message, type, sentBy });
 };
