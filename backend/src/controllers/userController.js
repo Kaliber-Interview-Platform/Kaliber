@@ -1,5 +1,25 @@
 import User from "../models/User.js";
-import bycrypt from "bcryptjs";
+import bcrypt from "bcryptjs";
+
+// TEMPORARY CODE FOR EASY IDS
+
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+
+    res.status(200).json({
+      users
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch users",
+      error: error.message
+    });
+  }
+};
+
+
 
 export const getUser = async(req,res) =>{
     try{
@@ -36,7 +56,7 @@ export const updateUser = async(req,res) =>{
         }
 
         if (password){
-            const hashedPassword = await bycrypt.hash(password, 10);
+            const hashedPassword = await bcrypt.hash(password, 10);
             user.password = hashedPassword;
         }
 

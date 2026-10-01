@@ -7,14 +7,28 @@ export const applyToJob = async (req, res) => {
     const { jobPostId } = req.params;
 
     const jobPost = await JobPost.findById(jobPostId);
+
     if (!jobPost) {
       return res.status(404).json({ message: "Job post not found" });
+    }
+
+    if (new Date() > new Date(jobPost.deadline)){
+      return res.status(400).json({
+        message:"Application deadline has passed"
+      })
+    }
+
+    if (jobPost.status !== "open"){
+      return res.status(400).json({
+        message:"This job is no longer accepting applications."
+      })
     }
 
     const alreadyApplied = await Application.findOne({
       candidate: req.user.id,
       jobPost: jobPostId
     });
+
     if (alreadyApplied) {
       return res.status(400).json({ message: "You already applied to this job" });
     }
@@ -43,19 +57,36 @@ export const getMyApplications = async (req, res) => {
 };
 
 // ADMIN views all applications for one of their job posts
-export const getApplicationsForJobPost = async (req, res) => {
+export const getApplicationsForJobPost = async(req,res) => {
   try {
-    const { jobPostId } = req.params;
+    const {jobPostId} = req.params;
 
-    const applications = await Application.find({ jobPost: jobPostId })
-      .populate("candidate", "name email yearsOfExperience githubUrl expectedSalary");
+    const jobPost =  await JobPost.findById(jobPostId);
 
-    res.status(200).json({ applications });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch applications", error: error.message });
+    if (!jobPost) {
+      return res.status(404).json({
+        message : "Job Post not found"
+      });
+    }
+
+    if (jobPost.postedBy.toString() !== req.user.id) {
+      return res.status(403).json({
+        message : "You are not allowed to view applications for this job"
+      });
+    }
+
+    const applications = await Application.find({
+      jobPost: jobPostId
+    }).populate("candidate","name email minExperience githubUrl projectUrl expectedSalary");
+
+    res.status(200).json({applications})
+  } catch(error) {
+    res.status(500).json({
+      message : "Failed to fetch applications",
+      error : error.message
+    });
   }
 };
-
 // ADMIN updates an application's status (shortlist / reject / selected etc.)
 export const updateApplicationStatus = async (req, res) => {
   try {
@@ -67,15 +98,30 @@ export const updateApplicationStatus = async (req, res) => {
       return res.status(400).json({ message: "Invalid status value" });
     }
 
-    const application = await Application.findByIdAndUpdate(
-      applicationId,
-      { status },
-      { new: true }
-    );
+    const application = await Application.findById(applicationId)
 
     if (!application) {
       return res.status(404).json({ message: "Application not found" });
     }
+
+    const jobPost = await JobPost.findById(application.jobPost);
+
+    if (!jobPost) {
+      return res.status(404).json({
+        message:"Job Post not found."
+      });
+    }
+
+    if (jobPost.postedBy.toString() !== req.user.id){
+      return res.status(403).json({
+        message:"You are not allowed to update this application"
+      });
+    }
+
+    application.status = status;
+
+    await application.save();
+
     await createNotification(application.candidate, `Your application status changed to: ${status}`);
 
     res.status(200).json({ message: "Status updated", application });

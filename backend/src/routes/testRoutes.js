@@ -1,6 +1,6 @@
 import express from "express";
-import protect from "../middleware/protect.js";
-import roleMiddleware from "../middleware/roleMiddleware.js";
+import protect from "../middlewares/Protect.js";
+import roleMiddleware from "../middlewares/roleMiddleware.js";
 import { assignTest, getMyTest, submitAnswer, completeTest } from "../controllers/testController.js";
 
 const router = express.Router();

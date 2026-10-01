@@ -31,13 +31,15 @@ export const getMyNotifications = async (req, res) => {
 export const markAsRead = async (req, res) => {
   try {
     const { notificationId } = req.params;
-    const notification = await Notification.findByIdAndUpdate(notificationId, { read: true }, { new: true });
+    const notification = await Notification.findOne( {_id: notificationId, user:req.user.id});
 
     if (!notification) {
       return res.status(404).json({ message: "Notification not found" });
     }
 
-    res.status(200).json({ notification });
+    notification.read = true;
+    await notification.save();
+    res.status(200).json({ message:"Notification marked as read",notification });
   } catch (error) {
     res.status(500).json({ message: "Failed to update notification", error: error.message });
   }

@@ -1,4 +1,4 @@
-
+import JobPost from "../models/JobPost.js";
 import Application from "../models/Application.js";
 
 export const getReport = async (req, res) => {
@@ -12,9 +12,23 @@ export const getReport = async (req, res) => {
         populate: { path: "questions.question", select: "title difficulty" }
       });
 
-    if (!application) {
+      if (!application) {
       return res.status(404).json({ message: "Application not found" });
     }
+
+      const jobPost = await JobPost.findById(application.jobPost);
+
+      if (!jobPost) {
+        return res.status(404).json({
+          message : "Job Post not found"
+        });
+      }
+
+      if (jobPost.postedBy.toString() !== req.user.id){
+        return res.status(403).json({
+          message:"You are not allowed to view this report"
+        });
+      }
 
     if (!application.testInstance) {
       return res.status(400).json({ message: "Candidate has not completed a test yet" });

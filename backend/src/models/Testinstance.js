@@ -13,7 +13,7 @@ const testInstanceSchema = new mongoose.Schema({
   application: { type: mongoose.Schema.Types.ObjectId, ref: "Application", required: true },
   candidate: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
-  difficultyLevel: { type: Number, required: true }, 
+  difficultyLevel: { type : String,enum: ["easy","medium","hard"], required: true }, 
   questions: [questionResultSchema],                 
 
   startedAt: { type: Date },

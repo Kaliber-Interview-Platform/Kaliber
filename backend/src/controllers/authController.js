@@ -1,5 +1,5 @@
 import user from '../models/User.js';
-import bycrypt from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 const register = async (req, res) => {
@@ -15,7 +15,7 @@ const register = async (req, res) => {
             return res.status(400).json({ message: "User already exists" });
         }
 
-        const hashedPassword = await bycrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         const createUser=await user.create({
             name,email,password:hashedPassword,
@@ -47,7 +47,7 @@ const login = async (req, res) => {
 
         // compare password
 
-        const isPasswordValid = await bycrypt.compare(password, findUser.password);
+        const isPasswordValid = await bcrypt.compare(password, findUser.password);
 
         if (!isPasswordValid){
             return res.status(400).json({ message: "Invalid email or password" });
