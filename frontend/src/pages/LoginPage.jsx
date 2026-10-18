@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import api from "../lib/axios.js";
 
 function LoginPage() {
@@ -7,6 +7,8 @@ function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const location = useLocation();
+  const registeredMessage = location.state?.message;
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -17,11 +19,11 @@ function LoginPage() {
 
     try {
       const res = await api.post("/api/auth/login", form);
+      localStorage.setItem("token",res.data.token)
 
       // backend returns { _id, name, email, role, token }
-      const { token, ...user } = res.data;
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
+      const profileRes=await api.get("/api/users/profile")
+      localStorage.setItem("user", JSON.stringify(profileRes.data.user));
 
       navigate("/");
     } catch (err) {
@@ -42,6 +44,12 @@ function LoginPage() {
       >
         <div className="card-body gap-3">
           <h1 className="card-title text-2xl">Log in to Kalliber</h1>
+
+          {registeredMessage && (
+            <div role="status" className="alert alert-success">
+              <span>{registeredMessage}</span>
+            </div>
+          )}
 
           {error && (
             <div role="alert" className="alert alert-error">

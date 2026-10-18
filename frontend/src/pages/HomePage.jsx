@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../lib/axios.js";
 
 // reads the session saved by the login/signup pages
@@ -48,12 +48,9 @@ function Landing() {
   );
 }
 
-function JobCard({ job, canApply, onApply }) {
+function JobCard({ job, canApply, canManage ,onApply, onEdit, onDelete }) {
   const closed = job.status === "closed";
-  const experience =
-    job.maxExperience != null
-      ? `${job.minExperience ?? 0} to ${job.maxExperience} years`
-      : `${job.minExperience ?? 0}+ years`;
+  const experience = `${job.yearsOfExperience ?? 0}+ years`;
 
   return (
     <div className="card bg-base-100 border border-base-300">
@@ -78,7 +75,7 @@ function JobCard({ job, canApply, onApply }) {
         <div className="flex flex-wrap gap-x-4 text-sm opacity-70">
           <span>Experience: {experience}</span>
           <span>Openings: {job.openings}</span>
-          {job.deadline && <span>Apply by {new Date(job.deadline).toLocaleDateString()}</span>}
+          {job.deadline && <span>Deadline: {new Date(job.deadline).toLocaleDateString()}</span>}
         </div>
 
         {canApply && (
@@ -92,6 +89,25 @@ function JobCard({ job, canApply, onApply }) {
             </button>
           </div>
         )}
+
+        {canManage && (
+          <div className="card-actions justify-end">
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => onEdit(job._id)}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-error btn-sm"
+              onClick={() => onDelete(job)}
+              >
+              Delete
+            </button>
+          </div>
+)}
       </div>
     </div>
   );
@@ -104,13 +120,21 @@ function JobBoard({ user, token }) {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [notice, setNotice] = useState(null);
+  const navigate = useNavigate();
+  const [jobToDelete, setJobToDelete] =useState(null);
+  const [deleting,setDeleting] = useState(false);
+  const isAdmin = user.role ==="admin";
+  const myId = user._id || user.id;
+
+  const canManage = (job) =>
+    isAdmin && (job.postedBy?._id || job.postedBy) === myId;
 
   const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
 
   useEffect(() => {
     const loadJobs = async () => {
       try {
-        const res = await api.get("/api/jobposts", authHeaders);
+        const res = await api.get("/api/jobs", authHeaders);
         // adjust this line if your getAllJobPosts returns a different shape
         const list = Array.isArray(res.data) ? res.data : res.data.jobPosts || res.data.jobs || [];
         setJobs(list);
@@ -137,18 +161,48 @@ function JobBoard({ user, token }) {
     }
   };
 
+  const confirmDelete = async () => {
+  setDeleting(true);
+
+  try {
+    await api.delete(`/api/jobs/${jobToDelete._id}`, authHeaders);
+    setJobs((prev) => prev.filter((j) => j._id !== jobToDelete._id));
+    showNotice("success", "Job post deleted.");
+  } catch (err) {
+    showNotice("error", err.response?.data?.message || "Could not delete job post.");
+  } finally {
+    setDeleting(false);
+    setJobToDelete(null);
+  }
+};
+
   const query = search.trim().toLowerCase();
+  const today=new Date();
+  today.setHours(0,0,0,0);
   const visibleJobs = jobs.filter(
-    (job) =>
-      !query ||
-      job.title?.toLowerCase().includes(query) ||
-      job.requiredSkills?.some((skill) => skill.toLowerCase().includes(query))
-  );
+    (job) =>{
+      if (user.role === "candidate"){
+        if (job.status !== "open") return false;
+        if (job.deadline && new Date(job.deadline) < today) return false;
+      }
+
+      return (
+        !query ||
+        job.title?.toLowerCase().includes(query) ||
+        job.requiredSkills?.some((skill) => skill.toLowerCase().includes(query))
+      )
+    }
+);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8">
+    <div className="max-w-screen-2xl mx-auto px-4 sm:px-8 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <h1 className="text-2xl font-bold">Open positions</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Open positions</h1>
+          <Link to="/profile" className="btn btn-outline btn-sm mt-3">
+            My Profile
+          </Link>
+        </div>
         <input
           type="text"
           className="input w-full sm:w-72"
@@ -172,16 +226,51 @@ function JobBoard({ user, token }) {
         </p>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {visibleJobs.map((job) => (
           <JobCard
             key={job._id}
             job={job}
             canApply={user.role === "candidate"}
+            canManage={canManage(job)}
             onApply={handleApply}
+            onEdit={(id) => navigate(`/admin/jobs/${id}/edit`)}
+            onDelete={setJobToDelete}
           />
         ))}
       </div>
+      
+      {jobToDelete && (
+        <dialog className="modal modal-open" aria-labelledby="delete-title">
+        <div className="modal-box">
+          <h3 id="delete-title" className="text-lg font-bold">
+            Delete this job post?
+          </h3>
+          <p className="py-3">
+            "{jobToDelete.title}" will be removed for all candidates, along with
+            its applications. This can't be undone.
+          </p>
+        <div className="modal-action">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => setJobToDelete(null)}
+            disabled={deleting}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="btn btn-error"
+            onClick={confirmDelete}
+            disabled={deleting}
+          >
+          {deleting ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </div>
+    </dialog>
+)}
 
       {notice && (
         <div className="toast toast-end">

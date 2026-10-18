@@ -22,7 +22,7 @@ function SignupPage() {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
-      navigate("/");
+      navigate("/login", {state: {message: "Account created. Please log in."}});
     } catch (err) {
       setError(
         err.response?.data?.message ||

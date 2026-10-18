@@ -12,10 +12,13 @@ export const applyToJob = async (req, res) => {
       return res.status(404).json({ message: "Job post not found" });
     }
 
-    if (new Date() > new Date(jobPost.deadline)){
-      return res.status(400).json({
-        message:"Application deadline has passed"
-      })
+    if (jobPost.deadline) { // a deadline date should stay open through the end of that day
+      const endOfDeadline = new Date(jobPost.deadline);
+      endOfDeadline.setUTCHours(23, 59, 59, 999);
+
+      if (new Date() > endOfDeadline) {
+        return res.status(400).json({ message: "Application deadline has passed" });
+      }
     }
 
     if (jobPost.status !== "open"){
@@ -77,7 +80,7 @@ export const getApplicationsForJobPost = async(req,res) => {
 
     const applications = await Application.find({
       jobPost: jobPostId
-    }).populate("candidate","name email minExperience githubUrl projectUrl expectedSalary");
+    }).populate("candidate","name email yearsOfExperience githubUrl projectUrl expectedSalary");
 
     res.status(200).json({applications})
   } catch(error) {

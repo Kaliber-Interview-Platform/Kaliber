@@ -8,7 +8,7 @@ export const createJobPost = async(req,res) => {
             description,
             typeOfEmployment,
             requiredSkills,
-            minExperience,
+            yearsOfExperience,
             salary,
             difficultyLevel,
             openings,
@@ -37,7 +37,7 @@ export const createJobPost = async(req,res) => {
             description,
             typeOfEmployment,
             requiredSkills,
-            minExperience,
+            yearsOfExperience,
             salary,
             difficultyLevel,
             openings,
@@ -56,19 +56,31 @@ export const createJobPost = async(req,res) => {
     }
 };
 
-export const getAllJobPosts = async(req,res) => {
-    try{
-        const jobPosts= await JobPost.find().populate("postedBy","name email").sort({createdAt:-1});
+export const getAllJobPosts = async (req, res) => {
+  try {
+    const filter = {};
 
-        res.status(200).json({
-            jobPosts
-        });
-    } catch (error){
-        res.status(500).json({
-            message: "Failed to fetch Job Posts.",
-            error:error.message
-        });
+    // candidates only get open jobs whose deadline hasn't passed
+    if (req.user.role === "candidate") {
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+
+      filter.status = "open";
+      filter.$or = [{ deadline: null }, { deadline: { $gte: startOfToday } }];
     }
+
+    const jobPosts = await JobPost.find(filter)
+      .populate("postedBy", "name email")
+      .sort({ createdAt: -1 });
+
+    res.set("Cache-Control", "no-store");
+    res.status(200).json({ jobPosts });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch Job Posts.",
+      error: error.message
+    });
+  }
 };
 
 export const getJobPostById = async(req,res) => {
@@ -115,7 +127,7 @@ export const updateJobPost = async(req,res) => {
             description,
             typeOfEmployment,
             requiredSkills,
-            minExperience,
+            yearsOfExperience,
             salary,
             difficultyLevel,
             openings,
@@ -129,7 +141,7 @@ export const updateJobPost = async(req,res) => {
         if (description) jobPost.description=description;
         if (typeOfEmployment) jobPost.typeOfEmployment=typeOfEmployment;
         if (requiredSkills) jobPost.requiredSkills=requiredSkills;
-        if (minExperience) jobPost.minExperience=minExperience;
+        if (yearsOfExperience) jobPost.yearsOfExperience=yearsOfExperience;
         if (salary !== undefined) jobPost.salary=salary;
         if (difficultyLevel) jobPost.difficultyLevel=difficultyLevel;
         if (openings) jobPost.openings=openings;

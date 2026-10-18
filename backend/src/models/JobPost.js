@@ -36,7 +36,7 @@ const jobPostSchema = new mongoose.Schema({
     required: true 
   },
 
-  minExperience: { 
+  yearsOfExperience: { 
     type: Number, 
     default: 0 
   },
