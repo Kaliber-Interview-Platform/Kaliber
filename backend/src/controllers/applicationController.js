@@ -41,8 +41,16 @@ export const applyToJob = async (req, res) => {
       jobPost: jobPostId
     });
 
+    await createNotification(
+      jobPost.postedBy,
+      `${req.user.name || "A candidate"} applied for "${jobPost.title}".`
+    );
+
     res.status(201).json({ message: "Application submitted", application });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "You already applied to this job" });
+    }
     res.status(500).json({ message: "Failed to apply", error: error.message });
   }
 };
@@ -51,7 +59,9 @@ export const applyToJob = async (req, res) => {
 export const getMyApplications = async (req, res) => {
   try {
     const applications = await Application.find({ candidate: req.user.id })
-      .populate("jobPost", "title difficultyLevel status");
+      .populate("jobPost", "title company location difficultyLevel status typeOfEmployment salary deadline")
+      .populate("testInstance", "score status duration expiresAt completedAt")
+      .sort({ createdAt: -1 });
 
     res.status(200).json({ applications });
   } catch (error) {
@@ -80,9 +90,12 @@ export const getApplicationsForJobPost = async(req,res) => {
 
     const applications = await Application.find({
       jobPost: jobPostId
-    }).populate("candidate","name email yearsOfExperience githubUrl projectUrl expectedSalary");
+    })
+      .populate("candidate", "name email yearsOfExperience jobRole githubUrl projectUrl expectedSalary resumeUrl")
+      .populate("testInstance", "score status completedAt difficultyLevel")
+      .sort({ createdAt: -1 });
 
-    res.status(200).json({applications})
+    res.status(200).json({ applications });
   } catch(error) {
     res.status(500).json({
       message : "Failed to fetch applications",

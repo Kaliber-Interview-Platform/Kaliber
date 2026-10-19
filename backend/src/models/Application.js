@@ -18,13 +18,15 @@ const applicationSchema = new mongoose.Schema({
   },
  
   testInstance: {
-     type: mongoose.Schema.Types.ObjectId, 
+    type: mongoose.Schema.Types.ObjectId, 
     ref: "TestInstance"
-   },
- 
+  },
+
   appliedAt: { type: Date, default: Date.now }
-});
- 
-const Application = mongoose.model("Application", applicationSchema);
+}, { timestamps: true });
+
+applicationSchema.index({ candidate: 1, jobPost: 1 }, { unique: true });
+
+const Application = mongoose.models.Application || mongoose.model("Application", applicationSchema);
 export default Application;
  

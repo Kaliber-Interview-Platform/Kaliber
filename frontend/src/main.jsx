@@ -5,13 +5,6 @@ import App from "./App.jsx";
 import "./index.css";
 import { AuthProvider } from "./context/AuthContext.jsx";
 
-// ...
-<BrowserRouter>
-  <AuthProvider>
-    <App />
-  </AuthProvider>
-</BrowserRouter>
-
 // apply the saved theme before the first paint
 const savedTheme =
   localStorage.getItem("theme") ||
@@ -21,7 +14,9 @@ document.documentElement.setAttribute("data-theme", savedTheme);
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </BrowserRouter>
   </StrictMode>
 );

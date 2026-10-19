@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../lib/axios.js";
+import useAuth from "../hooks/UseAuth.js";
+import NavBar from "../components/NavBar.jsx";
+import Loader from "../components/Loader.jsx";
 
 const EMPLOYMENT_TYPES = [
-  { value: "job", label: "Job" },
+  { value: "job", label: "Full-Time Job" },
   { value: "internship", label: "Internship" }
 ];
 
 const DIFFICULTY_LEVELS = [
-  { value: "easy", label: "Easy" },
-  { value: "medium", label: "Medium" },
-  { value: "hard", label: "Hard" }
+  { value: "easy", label: "Easy (Foundational DSA)" },
+  { value: "medium", label: "Medium (Standard LeetCode Medium)" },
+  { value: "hard", label: "Hard (Advanced Algorithms)" }
 ];
 
 const emptyJob = {
@@ -19,10 +22,10 @@ const emptyJob = {
   location: "",
   description: "",
   typeOfEmployment: "job",
-  requiredSkills: "", // comma-separated in the UI, converted to an array on save
+  requiredSkills: "",
   yearsOfExperience: "",
   salary: "",
-  difficultyLevel: "easy",
+  difficultyLevel: "medium",
   openings: "1",
   deadline: "",
   status: "open"
@@ -30,8 +33,9 @@ const emptyJob = {
 
 function JobPostFormPage() {
   const navigate = useNavigate();
-  const { jobId } = useParams(); // present on /admin/jobs/:jobId/edit
+  const { jobId } = useParams();
   const isEdit = Boolean(jobId);
+  const { user } = useAuth();
 
   const [job, setJob] = useState(emptyJob);
   const [loading, setLoading] = useState(isEdit);
@@ -40,11 +44,6 @@ function JobPostFormPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!localStorage.getItem("token")) {
-      navigate("/login");
-      return;
-    }
-
     if (!isEdit) return;
 
     const fetchJob = async () => {
@@ -61,26 +60,20 @@ function JobPostFormPage() {
           requiredSkills: (data.requiredSkills || []).join(", "),
           yearsOfExperience: data.yearsOfExperience ?? "",
           salary: data.salary ?? "",
-          difficultyLevel: data.difficultyLevel || "easy",
+          difficultyLevel: data.difficultyLevel || "medium",
           openings: data.openings ?? "1",
           deadline: data.deadline ? data.deadline.slice(0, 10) : "",
           status: data.status || "open"
         });
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load job post");
-
-        if (err.response?.status === 401) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          navigate("/login");
-        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchJob();
-  }, [isEdit, jobId, navigate]);
+  }, [isEdit, jobId]);
 
   const handleChange = (e) => {
     setJob({
@@ -100,7 +93,7 @@ function JobPostFormPage() {
       .filter(Boolean);
 
     if (skills.length === 0) {
-      setError("Add at least one required skill.");
+      setError("Please add at least one required skill (separated by commas).");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -108,7 +101,6 @@ function JobPostFormPage() {
     setSaving(true);
 
     try {
-      // postedBy is NOT sent. The backend sets it from the logged-in admin.
       const payload = {
         title: job.title.trim(),
         company: job.company.trim(),
@@ -127,10 +119,10 @@ function JobPostFormPage() {
 
       if (isEdit) {
         await api.put(`/api/jobs/${jobId}`, payload);
-        setMessage("Job post updated successfully.");
+        setMessage("Job post updated successfully!");
       } else {
         await api.post("/api/jobs", payload);
-        setMessage("Job post created successfully.");
+        setMessage("Job post published successfully!");
       }
 
       setTimeout(() => navigate("/"), 1200);
@@ -143,221 +135,247 @@ function JobPostFormPage() {
   };
 
   if (loading) {
-    return <p className="p-8">Loading job post...</p>;
+    return (
+      <div className="min-h-screen bg-base-200 flex flex-col">
+        <NavBar />
+        <Loader message="Loading job posting details..." />
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">
-        {isEdit ? "Edit job post" : "Create job post"}
-      </h1>
+    <div className="min-h-screen bg-base-200 flex flex-col">
+      <NavBar />
 
-      {message && (
-        <div role="status" className="alert alert-success mb-4">
-          {message}
+      <div className="max-w-4xl mx-auto w-full p-4 sm:p-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight">
+              {isEdit ? "Edit Job Posting" : "Create New Job Posting"}
+            </h1>
+            <p className="text-sm opacity-70 mt-1">
+              {isEdit
+                ? "Update your role requirements, salary, or deadline."
+                : "Describe the role and select the DSA test difficulty."}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => navigate(-1)}
+          >
+            ← Back
+          </button>
         </div>
-      )}
 
-      {error && (
-        <div role="alert" className="alert alert-error mb-4">
-          {error}
-        </div>
-      )}
+        {message && (
+          <div role="status" className="alert alert-success mb-6 shadow-sm">
+            <span>{message}</span>
+          </div>
+        )}
 
-      <form
-        onSubmit={handleSubmit}
-        className="card bg-base-100 border border-base-300"
-      >
-        <div className="card-body grid grid-cols-1 md:grid-cols-2 gap-4">
-          <fieldset className="fieldset">
-            <legend className="fieldset-legend">Job title</legend>
-            <input
-              className="input w-full"
-              type="text"
-              name="title"
-              value={job.title}
-              onChange={handleChange}
-              required
-            />
-          </fieldset>
+        {error && (
+          <div role="alert" className="alert alert-error mb-6 shadow-sm">
+            <span>{error}</span>
+          </div>
+        )}
 
-          <fieldset className="fieldset">
-            <legend className="fieldset-legend">Company</legend>
-            <input
-              className="input w-full"
-              type="text"
-              name="company"
-              value={job.company}
-              onChange={handleChange}
-              required
-            />
-          </fieldset>
+        <form onSubmit={handleSubmit} className="card bg-base-100 border border-base-300 shadow-sm">
+          <div className="card-body gap-5 p-6 sm:p-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend font-semibold">Job Title *</legend>
+                <input
+                  className="input w-full"
+                  type="text"
+                  name="title"
+                  placeholder="e.g. Junior Full-Stack Engineer"
+                  value={job.title}
+                  onChange={handleChange}
+                  required
+                />
+              </fieldset>
 
-          <fieldset className="fieldset">
-            <legend className="fieldset-legend">Location</legend>
-            <input
-              className="input w-full"
-              type="text"
-              name="location"
-              value={job.location}
-              onChange={handleChange}
-              required
-            />
-          </fieldset>
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend font-semibold">Company Name *</legend>
+                <input
+                  className="input w-full"
+                  type="text"
+                  name="company"
+                  placeholder="e.g. Acme Corp"
+                  value={job.company}
+                  onChange={handleChange}
+                  required
+                />
+              </fieldset>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <fieldset className="fieldset">
-              <legend className="fieldset-legend">Type of employment</legend>
-              <select
-                className="select w-full"
-                name="typeOfEmployment"
-                value={job.typeOfEmployment}
-                onChange={handleChange}
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend font-semibold">Location *</legend>
+                <input
+                  className="input w-full"
+                  type="text"
+                  name="location"
+                  placeholder="e.g. Remote / New York, NY"
+                  value={job.location}
+                  onChange={handleChange}
+                  required
+                />
+              </fieldset>
+
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend font-semibold">Employment Type *</legend>
+                <select
+                  className="select w-full"
+                  name="typeOfEmployment"
+                  value={job.typeOfEmployment}
+                  onChange={handleChange}
+                >
+                  {EMPLOYMENT_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </fieldset>
+
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend font-semibold">Coding Test Difficulty *</legend>
+                <select
+                  className="select w-full"
+                  name="difficultyLevel"
+                  value={job.difficultyLevel}
+                  onChange={handleChange}
+                >
+                  {DIFFICULTY_LEVELS.map((d) => (
+                    <option key={d.value} value={d.value}>
+                      {d.label}
+                    </option>
+                  ))}
+                </select>
+              </fieldset>
+
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend font-semibold">Annual Salary ($) *</legend>
+                <input
+                  className="input w-full"
+                  type="number"
+                  name="salary"
+                  placeholder="e.g. 75000"
+                  value={job.salary}
+                  onChange={handleChange}
+                  min="0"
+                  required
+                />
+              </fieldset>
+
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend font-semibold">Required Skills (Comma-separated) *</legend>
+                <input
+                  className="input w-full"
+                  type="text"
+                  name="requiredSkills"
+                  value={job.requiredSkills}
+                  onChange={handleChange}
+                  placeholder="React, Node.js, TypeScript, SQL"
+                  required
+                />
+              </fieldset>
+
+              <div className="grid grid-cols-2 gap-3">
+                <fieldset className="fieldset">
+                  <legend className="fieldset-legend font-semibold">Min. Experience</legend>
+                  <input
+                    className="input w-full"
+                    type="number"
+                    name="yearsOfExperience"
+                    value={job.yearsOfExperience}
+                    onChange={handleChange}
+                    placeholder="0"
+                    min="0"
+                    step="any"
+                  />
+                </fieldset>
+
+                <fieldset className="fieldset">
+                  <legend className="fieldset-legend font-semibold">Openings</legend>
+                  <input
+                    className="input w-full"
+                    type="number"
+                    name="openings"
+                    value={job.openings}
+                    onChange={handleChange}
+                    min="1"
+                  />
+                </fieldset>
+              </div>
+
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend font-semibold">Application Deadline</legend>
+                <input
+                  className="input w-full"
+                  type="date"
+                  name="deadline"
+                  value={job.deadline}
+                  onChange={handleChange}
+                />
+              </fieldset>
+
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend font-semibold">Listing Status</legend>
+                <select
+                  className="select w-full"
+                  name="status"
+                  value={job.status}
+                  onChange={handleChange}
+                >
+                  <option value="open">Open (Accepting Applications)</option>
+                  <option value="closed">Closed (Hidden)</option>
+                </select>
+              </fieldset>
+
+              <fieldset className="fieldset md:col-span-2">
+                <legend className="fieldset-legend font-semibold">Role Description *</legend>
+                <textarea
+                  className="textarea w-full h-44"
+                  name="description"
+                  placeholder="Detail the day-to-day responsibilities, stack, team culture, and interview expectations..."
+                  value={job.description}
+                  onChange={handleChange}
+                  required
+                />
+              </fieldset>
+            </div>
+
+            <div className="flex gap-3 pt-4 border-t border-base-200">
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={saving || Boolean(message)}
               >
-                {EMPLOYMENT_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </fieldset>
+                {saving ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm" />
+                    Saving...
+                  </>
+                ) : isEdit ? (
+                  "Save Changes"
+                ) : (
+                  "Publish Job Posting"
+                )}
+              </button>
 
-            <fieldset className="fieldset">
-              <legend className="fieldset-legend">Test difficulty</legend>
-              <select
-                className="select w-full"
-                name="difficultyLevel"
-                value={job.difficultyLevel}
-                onChange={handleChange}
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => navigate(-1)}
+                disabled={saving}
               >
-                {DIFFICULTY_LEVELS.map((d) => (
-                  <option key={d.value} value={d.value}>
-                    {d.label}
-                  </option>
-                ))}
-              </select>
-            </fieldset>
+                Cancel
+              </button>
+            </div>
           </div>
-
-          <fieldset className="fieldset">
-            <legend className="fieldset-legend">Required skills</legend>
-            <input
-              className="input w-full"
-              type="text"
-              name="requiredSkills"
-              value={job.requiredSkills}
-              onChange={handleChange}
-              placeholder="React, Node.js, MongoDB"
-              required
-            />
-            <p className="label">Separate skills with commas.</p>
-          </fieldset>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <fieldset className="fieldset">
-              <legend className="fieldset-legend">Salary</legend>
-              <input
-                className="input w-full"
-                type="number"
-                name="salary"
-                value={job.salary}
-                onChange={handleChange}
-                min="0"
-                step="1"
-                required
-              />
-            </fieldset>
-
-            <fieldset className="fieldset">
-              <legend className="fieldset-legend">
-                Min. experience (years)
-              </legend>
-              <input
-                className="input w-full"
-                type="number"
-                name="yearsOfExperience"
-                value={job.yearsOfExperience}
-                onChange={handleChange}
-                min="0"
-                step="any"
-              />
-            </fieldset>
-
-            <fieldset className="fieldset">
-              <legend className="fieldset-legend">Openings</legend>
-              <input
-                className="input w-full"
-                type="number"
-                name="openings"
-                value={job.openings}
-                onChange={handleChange}
-                min="1"
-                step="1"
-              />
-            </fieldset>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <fieldset className="fieldset">
-              <legend className="fieldset-legend">Application deadline</legend>
-              <input
-                className="input w-full"
-                type="date"
-                name="deadline"
-                value={job.deadline}
-                onChange={handleChange}
-              />
-            </fieldset>
-
-            <fieldset className="fieldset">
-              <legend className="fieldset-legend">Status</legend>
-              <select
-                className="select w-full"
-                name="status"
-                value={job.status}
-                onChange={handleChange}
-              >
-                <option value="open">Open (visible to candidates)</option>
-                <option value="closed">Closed (hidden)</option>
-              </select>
-            </fieldset>
-          </div>
-
-          <fieldset className="fieldset">
-            <legend className="fieldset-legend">Description</legend>
-            <textarea
-              className="textarea w-full h-40"
-              name="description"
-              value={job.description}
-              onChange={handleChange}
-              required
-            />
-          </fieldset>
-
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={saving || Boolean(message)}
-            >
-              {saving
-                ? "Saving..."
-                : isEdit
-                ? "Save changes"
-                : "Publish job post"}
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => navigate(-1)}
-              disabled={saving}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

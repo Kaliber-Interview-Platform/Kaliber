@@ -1,4 +1,6 @@
 import JobPost from "../models/JobPost.js";
+import Application from "../models/Application.js";
+import TestInstance from "../models/TestInstance.js";
 export const createJobPost = async(req,res) => { 
     try{
         const{
@@ -179,9 +181,10 @@ export const deleteJobPost = async(req,res) => {
             });
         }
 
+        const appIds = await Application.find({ jobPost: req.params.id }).distinct("_id");
+        await TestInstance.deleteMany({ application: { $in: appIds } });
+        await Application.deleteMany({ jobPost: req.params.id });
         await JobPost.findByIdAndDelete(req.params.id);
-
-        
 
         res.status(200).json({
             message:"Job Post deleted successfully."

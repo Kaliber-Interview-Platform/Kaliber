@@ -17,13 +17,33 @@ const register = async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const createUser=await user.create({
-            name,email,password:hashedPassword,
-            role: role || "candidate"
+        const userRole = role === "admin" ? "admin" : "candidate";
+
+        const createUser = await user.create({
+            name,
+            email,
+            password: hashedPassword,
+            role: userRole
         });
 
-        res.status(201).json({ message: "User registered successfully",
-            createUser:{id : createUser._id, name : createUser.name, email : createUser.email, role : createUser.role}
+        const token = jwt.sign(
+            {
+                id: createUser._id,
+                role: createUser.role
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: "7d" }
+        );
+
+        res.status(201).json({
+            message: "User registered successfully",
+            token,
+            user: {
+                id: createUser._id,
+                name: createUser.name,
+                email: createUser.email,
+                role: createUser.role
+            }
         });
         
     } catch(error){
@@ -61,7 +81,7 @@ const login = async (req, res) => {
                 role : findUser.role,
             },
             process.env.JWT_SECRET,
-            { expiresIn: "1d" }
+            { expiresIn: "7d" }
         );
 
         res.status(200).json({

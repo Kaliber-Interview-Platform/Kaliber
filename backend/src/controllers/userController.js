@@ -2,6 +2,8 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import Application from "../models/Application.js";
 import JobPost from "../models/JobPost.js";
+import Notification from "../models/Notification.js";
+import TestInstance from "../models/TestInstance.js";
 
 export const getUser = async(req,res) =>{
     try{
@@ -16,6 +18,29 @@ export const getUser = async(req,res) =>{
         res.status(500).json({message:"Failed to fetch user profile",error:error.message});
     }
 }
+
+// Get candidate profile (for admin)
+export const getCandidateProfile = async (req, res) => {
+  try {
+    const candidate = await User.findById(req.params.candidateId).select("-password");
+
+    if (!candidate) {
+      return res.status(404).json({ message: "Candidate not found" });
+    }
+
+    res.status(200).json({ candidate });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch candidate profile",
+      error: error.message
+    });
+  }
+};
+
+// Logout handler
+export const logout = async (req, res) => {
+  res.status(200).json({ message: "Logged out successfully" });
+};
 
 //Update user profile
 
@@ -100,17 +125,19 @@ export const deleteUser = async (req, res) => {
     }
  
     if (user.role === "admin") {
-      // an admin's job posts, and every application to them, go with the account
       const jobIds = await JobPost.find({ postedBy: user._id }).distinct("_id");
+      const appIds = await Application.find({ jobPost: { $in: jobIds } }).distinct("_id");
+      await TestInstance.deleteMany({ application: { $in: appIds } });
       await Application.deleteMany({ jobPost: { $in: jobIds } });
       await JobPost.deleteMany({ postedBy: user._id });
     } else {
-      // a candidate's own applications
+      await TestInstance.deleteMany({ candidate: user._id });
       await Application.deleteMany({ candidate: user._id });
     }
  
-    // If you have a Notification model, remove this user's notifications too, e.g.
-    // await Notification.deleteMany({ user: user._id });
+    await Notification.deleteMany({
+      $or: [{ user: user._id }, { sentBy: user._id }]
+    });
  
     await user.deleteOne();
  

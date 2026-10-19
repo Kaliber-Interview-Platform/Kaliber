@@ -2,3 +2,233 @@
 @plugin "daisyui" {
   themes: light --default, dark --prefersdark;
 }
+
+/* ─── Custom animations ───────────────────────────────────────────── */
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50%       { transform: translateY(-8px) rotate(2deg); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes gradient-x {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(var(--p) / 0.4); }
+  50%       { box-shadow: 0 0 0 8px oklch(var(--p) / 0); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes ping-slow {
+  0%    { transform: scale(1);   opacity: 0.8; }
+  75%, 100% { transform: scale(1.8); opacity: 0; }
+}
+
+@keyframes bounce-gentle {
+  0%, 100% { transform: translateY(0); animation-timing-function: cubic-bezier(0.8,0,1,1); }
+  50%       { transform: translateY(-6px); animation-timing-function: cubic-bezier(0,0,0.2,1); }
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(10px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ─── Animation utility classes ───────────────────────────────────── */
+
+.animate-float        { animation: float 4s ease-in-out infinite; }
+.animate-float-slow   { animation: float-slow 6s ease-in-out infinite; }
+.animate-gradient-x   { background-size: 200% 200%; animation: gradient-x 5s ease infinite; }
+.animate-slide-up     { animation: slide-up 0.5s ease-out both; }
+.animate-fade-in      { animation: fade-in 0.4s ease-out both; }
+.animate-pulse-glow   { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-spin-slow    { animation: spin-slow 8s linear infinite; }
+.animate-ping-slow    { animation: ping-slow 2s cubic-bezier(0,0,0.2,1) infinite; }
+.animate-bounce-gentle { animation: bounce-gentle 2s infinite; }
+.animate-count-up     { animation: count-up 0.6s ease-out both; }
+
+/* Stagger delays */
+.delay-100  { animation-delay: 0.1s; }
+.delay-200  { animation-delay: 0.2s; }
+.delay-300  { animation-delay: 0.3s; }
+.delay-500  { animation-delay: 0.5s; }
+.delay-700  { animation-delay: 0.7s; }
+
+/* ─── Glassmorphism ────────────────────────────────────────────────── */
+
+.glass-card {
+  background: oklch(var(--b1) / 0.7);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid oklch(var(--b3) / 0.5);
+}
+
+.glass-navbar {
+  background: oklch(var(--b1) / 0.85);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  border-bottom: 1px solid oklch(var(--b3) / 0.4);
+}
+
+/* ─── Gradient text ─────────────────────────────────────────────────── */
+
+.gradient-text {
+  background: linear-gradient(135deg, oklch(var(--p)), oklch(var(--s)));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.gradient-text-animated {
+  background: linear-gradient(270deg, oklch(var(--p)), oklch(var(--s)), oklch(var(--a)));
+  background-size: 300% 300%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: gradient-x 4s ease infinite;
+}
+
+/* ─── Card hover lift ───────────────────────────────────────────────── */
+
+.card-hover {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px oklch(var(--p) / 0.12);
+}
+
+/* ─── Shimmer loading skeleton ──────────────────────────────────────── */
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(var(--b2)) 0%,
+    oklch(var(--b3)) 50%,
+    oklch(var(--b2)) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ─── Gradient backgrounds ──────────────────────────────────────────── */
+
+.bg-hero {
+  background: radial-gradient(ellipse 80% 60% at 50% -10%,
+    oklch(var(--p) / 0.15) 0%,
+    oklch(var(--b2)) 60%,
+    oklch(var(--b2)) 100%
+  );
+}
+
+.bg-mesh {
+  background-color: oklch(var(--b2));
+  background-image:
+    radial-gradient(at 40% 20%, oklch(var(--p) / 0.08) 0, transparent 50%),
+    radial-gradient(at 80% 0%,  oklch(var(--s) / 0.06) 0, transparent 50%),
+    radial-gradient(at 0% 50%,  oklch(var(--a) / 0.05) 0, transparent 50%);
+}
+
+/* ─── Accent border gradient ────────────────────────────────────────── */
+
+.border-gradient {
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+}
+.border-gradient::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, oklch(var(--p)), oklch(var(--s)));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ─── Icon animated ring ────────────────────────────────────────────── */
+
+.icon-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-ring::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid oklch(var(--p) / 0.3);
+  animation: spin-slow 6s linear infinite;
+}
+
+/* ─── Stat counter animation ────────────────────────────────────────── */
+
+.stat-number {
+  animation: count-up 0.8s ease-out both;
+}
+
+/* ─── Glow button ───────────────────────────────────────────────────── */
+
+.btn-glow {
+  position: relative;
+  overflow: hidden;
+}
+.btn-glow::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, oklch(var(--p)), oklch(var(--s)));
+  filter: blur(8px);
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: -1;
+}
+.btn-glow:hover::after {
+  opacity: 0.6;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: oklch(var(--b3));
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(var(--p) / 0.6);
+}

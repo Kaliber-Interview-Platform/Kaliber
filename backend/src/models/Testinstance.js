@@ -17,12 +17,19 @@ const testInstanceSchema = new mongoose.Schema({
   questions: [questionResultSchema],                 
 
   startedAt: { type: Date },
+  expiresAt: { type: Date },
   completedAt: { type: Date }, 
+  duration: { type: Number, default: 60 },
+  status: {
+    type: String,
+    enum: ["not_started", "in_progress", "completed", "expired"],
+    default: "not_started"
+  },
 
   score: { type: Number, default: 0 },
 
   createdAt: { type: Date, default: Date.now }
 });
 
-const TestInstance = mongoose.model("TestInstance", testInstanceSchema);
+const TestInstance = mongoose.models.TestInstance || mongoose.model("TestInstance", testInstanceSchema);
 export default TestInstance;

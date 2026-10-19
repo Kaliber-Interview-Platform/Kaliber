@@ -6,10 +6,10 @@ export const getReport = async (req, res) => {
     const { applicationId } = req.params;
 
     const application = await Application.findById(applicationId)
-      .populate("candidate", "name email yearsOfExperience githubUrl projectUrl expectedSalary")
+      .populate("candidate", "name email yearsOfExperience jobRole githubUrl projectUrl expectedSalary resumeUrl")
       .populate({
         path: "testInstance",
-        populate: { path: "questions.question", select: "title difficulty" }
+        populate: { path: "questions.question", select: "title difficulty constraints" }
       });
 
       if (!application) {
@@ -31,7 +31,7 @@ export const getReport = async (req, res) => {
       }
 
     if (!application.testInstance) {
-      return res.status(400).json({ message: "Candidate has not completed a test yet" });
+      return res.status(400).json({ message: "Candidate has not been assigned or taken a test yet" });
     }
 
     const test = application.testInstance;
@@ -44,19 +44,28 @@ export const getReport = async (req, res) => {
     // breakdown by difficulty (easy/medium/hard passed vs total)
     const breakdown = { easy: { passed: 0, total: 0 }, medium: { passed: 0, total: 0 }, hard: { passed: 0, total: 0 } };
     test.questions.forEach((q) => {
-      const diff = q.question.difficulty;
-      breakdown[diff].total += 1;
-      if (q.passed) breakdown[diff].passed += 1;
+      const diff = q.question?.difficulty || "medium";
+      if (breakdown[diff]) {
+        breakdown[diff].total += 1;
+        if (q.passed) breakdown[diff].passed += 1;
+      }
     });
 
     res.status(200).json({
       candidate: application.candidate,
+      jobPost: {
+        _id: jobPost._id,
+        title: jobPost.title,
+        company: jobPost.company,
+        difficultyLevel: jobPost.difficultyLevel
+      },
+      applicationId: application._id,
       applicationStatus: application.status,
       score: test.score,
       totalQuestions: test.questions.length,
       totalTimeSeconds,
       breakdown,
-      questions: test.questions // full per-question detail (code, passed, time) if admin wants to drill in
+      questions: test.questions
     });
   } catch (error) {
     res.status(500).json({ message: "Failed to build report", error: error.message });

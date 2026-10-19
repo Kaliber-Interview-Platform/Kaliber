@@ -1,151 +1,116 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../lib/axios.js";
+import useAuth from "../hooks/UseAuth.js";
+import NavBar from "../components/NavBar.jsx";
+import JobCard from "../components/JobCard.jsx";
+import Loader from "../components/Loader.jsx";
 
-// reads the session saved by the login/signup pages
-const getSession = () => {
-  const token = localStorage.getItem("token");
-  try {
-    return { token, user: JSON.parse(localStorage.getItem("user")) };
-  } catch {
-    return { token, user: null };
-  }
-};
-
-// shown to visitors who are not logged in
+// Landing hero component shown to unauthenticated visitors
 function Landing() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-8 py-12 lg:py-20 grid gap-10 lg:grid-cols-2 items-center">
       <div>
-        <h1 className="text-4xl sm:text-5xl font-bold leading-tight">
-          Hire CS graduates on how they solve problems
+        <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary mb-4">
+          Hiring Platform for CS Graduates
+        </div>
+        <h1 className="text-4xl sm:text-5xl font-extrabold leading-tight tracking-tight">
+          Hire CS graduates on how they solve problems.
         </h1>
-        <p className="mt-5 text-lg opacity-80 max-w-prose">
-          Post a role, shortlist applicants, and send each one a timed coding test.
-          Every answer is graded automatically, so you review a score and the
-          submitted code instead of a stack of resumes.
+        <p className="mt-5 text-lg opacity-80 max-w-prose leading-relaxed">
+          Post roles, review applicant profiles, and assign timed coding tests.
+          Every solution is auto-graded with real test cases, giving you objective
+          skills evaluation instead of resume guesswork.
         </p>
-        <div className="mt-8 flex gap-3">
-          <Link to="/signup" className="btn btn-primary">
-            Create an account
+        <div className="mt-8 flex flex-wrap gap-4">
+          <Link to="/signup" className="btn btn-primary btn-lg shadow-md">
+            Get Started Free
           </Link>
-          <Link to="/login" className="btn btn-ghost">
-            Log in
+          <Link to="/login" className="btn btn-outline btn-lg">
+            Sign In
           </Link>
+        </div>
+
+        <div className="mt-10 grid grid-cols-3 gap-4 border-t border-base-300 pt-6 text-center sm:text-left">
+          <div>
+            <div className="text-2xl font-black text-primary">100%</div>
+            <div className="text-xs opacity-70">Automated Grading</div>
+          </div>
+          <div>
+            <div className="text-2xl font-black text-secondary">Timed</div>
+            <div className="text-xs opacity-70">DSA Test Sessions</div>
+          </div>
+          <div>
+            <div className="text-2xl font-black text-accent">1-Click</div>
+            <div className="text-xs opacity-70">Candidate Apply</div>
+          </div>
         </div>
       </div>
 
-      <div className="mockup-code w-full">
+      <div className="mockup-code w-full shadow-xl border border-base-300">
         <pre data-prefix="1"><code>def two_sum(nums, target):</code></pre>
         <pre data-prefix="2"><code>    seen = dict()</code></pre>
         <pre data-prefix="3"><code>    for i, n in enumerate(nums):</code></pre>
         <pre data-prefix="4"><code>        if target - n in seen:</code></pre>
-        <pre data-prefix="5"><code>            return seen[target - n], i</code></pre>
+        <pre data-prefix="5"><code>            return [seen[target - n], i]</code></pre>
         <pre data-prefix="6"><code>        seen[n] = i</code></pre>
-        <pre data-prefix=">" className="text-success"><code>2 of 2 test cases passed</code></pre>
+        <pre data-prefix="7"><code>    return []</code></pre>
+        <pre data-prefix=">" className="text-success font-semibold"><code>✓ 4 of 4 test cases passed in 12ms</code></pre>
       </div>
     </div>
   );
 }
 
-function JobCard({ job, canApply, canManage ,onApply, onEdit, onDelete }) {
-  const closed = job.status === "closed";
-  const experience = `${job.yearsOfExperience ?? 0}+ years`;
+// Job board component shown to logged-in users
+function JobBoard() {
+  const { user, isAdmin, isCandidate } = useAuth();
+  const navigate = useNavigate();
 
-  return (
-    <div className="card bg-base-100 border border-base-300">
-      <div className="card-body gap-3">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="card-title">{job.title}</h3>
-          <span className={`badge ${closed ? "badge-ghost" : "badge-success badge-soft"}`}>
-            {closed ? "Closed" : "Open"}
-          </span>
-        </div>
-
-        <p className="text-sm opacity-80 line-clamp-3">{job.description}</p>
-
-        <div className="flex flex-wrap gap-1">
-          {job.requiredSkills?.map((skill) => (
-            <span key={skill} className="badge badge-outline badge-sm">
-              {skill}
-            </span>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap gap-x-4 text-sm opacity-70">
-          <span>Experience: {experience}</span>
-          <span>Openings: {job.openings}</span>
-          {job.deadline && <span>Deadline: {new Date(job.deadline).toLocaleDateString()}</span>}
-        </div>
-
-        {canApply && (
-          <div className="card-actions justify-end">
-            <button
-              className="btn btn-primary btn-sm"
-              disabled={closed}
-              onClick={() => onApply(job._id)}
-            >
-              Apply
-            </button>
-          </div>
-        )}
-
-        {canManage && (
-          <div className="card-actions justify-end">
-            <button
-              type="button"
-              className="btn btn-outline btn-sm"
-              onClick={() => onEdit(job._id)}
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline btn-error btn-sm"
-              onClick={() => onDelete(job)}
-              >
-              Delete
-            </button>
-          </div>
-)}
-      </div>
-    </div>
-  );
-}
-
-// shown to logged-in users
-function JobBoard({ user, token }) {
   const [jobs, setJobs] = useState([]);
+  const [myApplications, setMyApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [difficultyFilter, setDifficultyFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [notice, setNotice] = useState(null);
-  const navigate = useNavigate();
-  const [jobToDelete, setJobToDelete] =useState(null);
-  const [deleting,setDeleting] = useState(false);
-  const isAdmin = user.role ==="admin";
-  const myId = user._id || user.id;
+  const [jobToDelete, setJobToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const myId = user?._id || user?.id;
 
   const canManage = (job) =>
     isAdmin && (job.postedBy?._id || job.postedBy) === myId;
 
-  const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
+  const loadData = async () => {
+    try {
+      const [jobsRes, appsRes] = await Promise.allSettled([
+        api.get("/api/jobs"),
+        isCandidate ? api.get("/api/applications/mine") : Promise.resolve({ data: { applications: [] } })
+      ]);
+
+      if (jobsRes.status === "fulfilled") {
+        const list = Array.isArray(jobsRes.value.data)
+          ? jobsRes.value.data
+          : jobsRes.value.data.jobPosts || jobsRes.value.data.jobs || [];
+        setJobs(list);
+      } else {
+        setError(jobsRes.reason?.response?.data?.message || "Could not load job posts.");
+      }
+
+      if (appsRes.status === "fulfilled") {
+        setMyApplications(appsRes.value.data?.applications || []);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to load data.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadJobs = async () => {
-      try {
-        const res = await api.get("/api/jobs", authHeaders);
-        // adjust this line if your getAllJobPosts returns a different shape
-        const list = Array.isArray(res.data) ? res.data : res.data.jobPosts || res.data.jobs || [];
-        setJobs(list);
-      } catch (err) {
-        setError(err.response?.data?.message || "Could not load job posts.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadJobs();
-  }, []);
+    loadData();
+  }, [isCandidate]);
 
   const showNotice = (type, text) => {
     setNotice({ type, text });
@@ -154,84 +119,154 @@ function JobBoard({ user, token }) {
 
   const handleApply = async (jobId) => {
     try {
-      await api.post(`/api/applications/${jobId}/apply`, {}, authHeaders);
-      showNotice("success", "Application submitted.");
+      await api.post(`/api/applications/${jobId}/apply`);
+      showNotice("success", "Application submitted successfully!");
+      // Refresh applications to update button state
+      const res = await api.get("/api/applications/mine");
+      setMyApplications(res.data.applications || []);
     } catch (err) {
       showNotice("error", err.response?.data?.message || "Could not submit your application.");
     }
   };
 
   const confirmDelete = async () => {
-  setDeleting(true);
+    if (!jobToDelete) return;
+    setDeleting(true);
 
-  try {
-    await api.delete(`/api/jobs/${jobToDelete._id}`, authHeaders);
-    setJobs((prev) => prev.filter((j) => j._id !== jobToDelete._id));
-    showNotice("success", "Job post deleted.");
-  } catch (err) {
-    showNotice("error", err.response?.data?.message || "Could not delete job post.");
-  } finally {
-    setDeleting(false);
-    setJobToDelete(null);
-  }
-};
+    try {
+      await api.delete(`/api/jobs/${jobToDelete._id}`);
+      setJobs((prev) => prev.filter((j) => j._id !== jobToDelete._id));
+      showNotice("success", "Job post deleted.");
+    } catch (err) {
+      showNotice("error", err.response?.data?.message || "Could not delete job post.");
+    } finally {
+      setDeleting(false);
+      setJobToDelete(null);
+    }
+  };
+
+  const appliedJobIds = new Set(
+    myApplications.map((app) => (typeof app.jobPost === "object" ? app.jobPost?._id : app.jobPost))
+  );
 
   const query = search.trim().toLowerCase();
-  const today=new Date();
-  today.setHours(0,0,0,0);
-  const visibleJobs = jobs.filter(
-    (job) =>{
-      if (user.role === "candidate"){
-        if (job.status !== "open") return false;
-        if (job.deadline && new Date(job.deadline) < today) return false;
-      }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-      return (
-        !query ||
-        job.title?.toLowerCase().includes(query) ||
-        job.requiredSkills?.some((skill) => skill.toLowerCase().includes(query))
-      )
+  const visibleJobs = jobs.filter((job) => {
+    if (isCandidate) {
+      if (job.status !== "open") return false;
+      if (job.deadline && new Date(job.deadline) < today) return false;
     }
-);
+
+    if (difficultyFilter !== "all" && job.difficultyLevel !== difficultyFilter) {
+      return false;
+    }
+
+    if (typeFilter !== "all" && job.typeOfEmployment !== typeFilter) {
+      return false;
+    }
+
+    return (
+      !query ||
+      job.title?.toLowerCase().includes(query) ||
+      job.company?.toLowerCase().includes(query) ||
+      job.requiredSkills?.some((skill) => skill.toLowerCase().includes(query))
+    );
+  });
 
   return (
     <div className="max-w-screen-2xl mx-auto px-4 sm:px-8 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+      {/* Header & Controls */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold">Open positions</h1>
-          <Link to="/profile" className="btn btn-outline btn-sm mt-3">
-            My Profile
-          </Link>
+          <h1 className="text-3xl font-extrabold tracking-tight">Explore Opportunities</h1>
+          <p className="text-sm opacity-70 mt-1">
+            {isCandidate
+              ? "Browse open tech positions and apply directly with your profile."
+              : "Manage your active job postings and candidate pipelines."}
+          </p>
         </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {isAdmin && (
+            <Link to="/admin/jobs/new" className="btn btn-primary btn-sm">
+              + Post New Job
+            </Link>
+          )}
+          {isCandidate && (
+            <Link to="/applications/mine" className="btn btn-outline btn-sm">
+              My Applications ({myApplications.length})
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6 bg-base-100 p-4 rounded-xl border border-base-300 shadow-xs">
         <input
           type="text"
-          className="input w-full sm:w-72"
-          placeholder="Search by title or skill"
+          className="input w-full"
+          placeholder="Search by title, company, or skill..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+
+        <select
+          className="select w-full"
+          value={difficultyFilter}
+          onChange={(e) => setDifficultyFilter(e.target.value)}
+          aria-label="Filter by test difficulty"
+        >
+          <option value="all">All Difficulties</option>
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+
+        <select
+          className="select w-full"
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          aria-label="Filter by employment type"
+        >
+          <option value="all">All Employment Types</option>
+          <option value="job">Full-time Job</option>
+          <option value="internship">Internship</option>
+        </select>
+
+        <div className="flex items-center justify-end text-xs opacity-70 px-2 font-medium">
+          Showing {visibleJobs.length} of {jobs.length} jobs
+        </div>
       </div>
 
-      {loading && <span className="loading loading-spinner loading-lg" />}
+      {loading && <Loader message="Loading job listings..." />}
 
       {error && (
-        <div role="alert" className="alert alert-error">
+        <div role="alert" className="alert alert-error mb-6">
           <span>{error}</span>
         </div>
       )}
 
       {!loading && !error && visibleJobs.length === 0 && (
-        <p className="opacity-70">
-          {jobs.length === 0 ? "No job posts yet." : "No job posts match your search."}
-        </p>
+        <div className="card bg-base-100 border border-base-300 p-8 text-center my-6">
+          <p className="text-lg font-bold">No job postings found</p>
+          <p className="text-sm opacity-70 mt-1">
+            {jobs.length === 0
+              ? "There are currently no job postings. Check back later!"
+              : "No positions matched your search criteria. Try adjusting filters."}
+          </p>
+        </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+      {/* Job Grid */}
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {visibleJobs.map((job) => (
           <JobCard
             key={job._id}
             job={job}
-            canApply={user.role === "candidate"}
+            canApply={isCandidate}
+            hasApplied={appliedJobIds.has(job._id)}
             canManage={canManage(job)}
             onApply={handleApply}
             onEdit={(id) => navigate(`/admin/jobs/${id}/edit`)}
@@ -239,42 +274,48 @@ function JobBoard({ user, token }) {
           />
         ))}
       </div>
-      
+
+      {/* Delete Confirmation Modal */}
       {jobToDelete && (
         <dialog className="modal modal-open" aria-labelledby="delete-title">
-        <div className="modal-box">
-          <h3 id="delete-title" className="text-lg font-bold">
-            Delete this job post?
-          </h3>
-          <p className="py-3">
-            "{jobToDelete.title}" will be removed for all candidates, along with
-            its applications. This can't be undone.
-          </p>
-        <div className="modal-action">
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={() => setJobToDelete(null)}
-            disabled={deleting}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="btn btn-error"
-            onClick={confirmDelete}
-            disabled={deleting}
-          >
-          {deleting ? "Deleting..." : "Delete"}
-          </button>
-        </div>
-      </div>
-    </dialog>
-)}
+          <div className="modal-box">
+            <h3 id="delete-title" className="text-lg font-bold">
+              Delete Job Post?
+            </h3>
+            <p className="py-3 text-sm opacity-85">
+              "{jobToDelete.title}" at {jobToDelete.company} will be permanently removed,
+              along with all submitted applications and tests. This action cannot be undone.
+            </p>
+            <div className="modal-action">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setJobToDelete(null)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-error"
+                onClick={confirmDelete}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting..." : "Confirm Delete"}
+              </button>
+            </div>
+          </div>
+        </dialog>
+      )}
 
+      {/* Toast Notice */}
       {notice && (
-        <div className="toast toast-end">
-          <div className={`alert ${notice.type === "success" ? "alert-success" : "alert-error"}`}>
+        <div className="toast toast-end z-50">
+          <div
+            className={`alert ${
+              notice.type === "success" ? "alert-success" : "alert-error"
+            } shadow-lg`}
+          >
             <span>{notice.text}</span>
           </div>
         </div>
@@ -284,10 +325,25 @@ function JobBoard({ user, token }) {
 }
 
 function HomePage() {
-  const { token, user } = getSession();
+  const { isAuthenticated, loading } = useAuth();
 
-  if (!token || !user) return <Landing />;
-  return <JobBoard user={user} token={token} />;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-base-200 flex flex-col">
+        <NavBar />
+        <Loader message="Loading Kaliber..." />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-base-200 flex flex-col">
+      <NavBar />
+      <main className="flex-1">
+        {isAuthenticated ? <JobBoard /> : <Landing />}
+      </main>
+    </div>
+  );
 }
 
 export default HomePage;

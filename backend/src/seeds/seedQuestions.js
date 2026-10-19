@@ -14,9 +14,10 @@ dotenv.config();
 // that import syntax behaves differently across Node versions and can throw errors;
 // fs.readFileSync works the same everywhere, which matters more here.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const questionsData = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "questionsData.json"), "utf-8")
-);
+const dataPath = fs.existsSync(path.join(__dirname, "QuestionsData.json"))
+  ? path.join(__dirname, "QuestionsData.json")
+  : path.join(__dirname, "questionsData.json");
+const questionsData = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
 
 const seed = async () => {
   try {
