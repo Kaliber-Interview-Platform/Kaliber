@@ -1,127 +1,74 @@
 import axios from "axios";
 
-import vm from "node:vm";
-
-// common Judge0 language IDs you'll actually need for a DSA test
+// Now uses onlinecompiler.io instead of Judge0. File name and exports are kept
+// the same so testController.js doesn't need any changes.
+// Note: no plain Node.js here - their JavaScript option is Deno (typescript-deno),
+// which doesn't support require('fs'), so it's left out on purpose.
 export const LANGUAGE_IDS = {
-  javascript: 63,
-  python: 71,
-  java: 62,
-  cpp: 54,
-  c: 50
+  python: "python-3.14",
+  cpp: "g++-15",
+  c: "gcc-15",
+  java: "openjdk-25"
 };
 
-const JUDGE0_URL = "https://judge0-ce.p.rapidapi.com/submissions";
+const API_URL = "https://api.onlinecompiler.io/api/run-code-sync/";
 
-// runs ONE piece of code against ONE input
-const runOnce = async (sourceCode, languageId, stdin) => {
-  if (process.env.JUDGE0_API_KEY) {
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// runs ONE piece of code against ONE input, returns a cleaned-up result.
+// retries a few times if their server says it's busy (429 = max 4 concurrent requests)
+const runOnce = async (sourceCode, compiler, stdin) => {
+  for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const response = await axios.post(
-        `${JUDGE0_URL}?base64_encoded=true&wait=true`,
-        {
-          source_code: Buffer.from(sourceCode).toString("base64"),
-          language_id: languageId,
-          stdin: Buffer.from(stdin || "").toString("base64")
-        },
+        API_URL,
+        { compiler, code: sourceCode, input: stdin || "" },
         {
           headers: {
-            "content-type": "application/json",
-            "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
-            "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com"
+            Authorization: process.env.ONLINECOMPILER_API_KEY, // raw key, no "Bearer "
+            "Content-Type": "application/json"
           },
-          timeout: 8000
+          timeout: 35000 // their own limit is 30s
         }
       );
 
       const result = response.data;
       return {
-        stdout: result.stdout ? Buffer.from(result.stdout, "base64").toString().trim() : "",
-        stderr: result.stderr ? Buffer.from(result.stderr, "base64").toString().trim() : "",
-        compileOutput: result.compile_output ? Buffer.from(result.compile_output, "base64").toString().trim() : "",
-        statusId: result.status?.id || 3,
-        statusDescription: result.status?.description || "Accepted",
-        time: result.time,
-        memory: result.memory
+        stdout: (result.output || "").replace(/\r\n/g, "\n").trim(),
+        stderr: (result.error || "").trim(),
+        exitCode: result.exit_code,
+        status: result.status // "success" or "error"
       };
-    } catch (apiErr) {
-      console.warn("Judge0 API failed or key expired, using local fallback evaluator:", apiErr.message);
+    } catch (err) {
+      const busy = err.response && err.response.status === 429;
+      if (busy && attempt < 3) {
+        await sleep(1000); // wait a second, then try again
+        continue;
+      }
+      throw err; // real failure (bad key, network down, still busy after 3 tries)
     }
-  }
-
-  // Local fallback execution (supports JavaScript & basic stdout simulation)
-  try {
-    const captured = [];
-    const customConsole = {
-      log: (...args) => captured.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(" ")),
-      error: (...args) => captured.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(" "))
-    };
-
-    const inputStr = String(stdin || "");
-    const sandbox = {
-      console: customConsole,
-      input: inputStr,
-      parseInt,
-      parseFloat,
-      Math,
-      Array,
-      String,
-      Number,
-      Boolean,
-      Object
-    };
-    vm.createContext(sandbox);
-
-    const wrappedCode = `
-      const __input__ = ${JSON.stringify(inputStr)};
-      let __lines__ = __input__.split('\\n');
-      let __idx__ = 0;
-      function readline() { return __lines__[__idx__++] || ""; }
-      ${sourceCode}
-    `;
-
-    const script = new vm.Script(wrappedCode);
-    script.runInContext(sandbox, { timeout: 3000 });
-
-    const out = captured.join("\n").trim();
-    return {
-      stdout: out,
-      stderr: "",
-      compileOutput: "",
-      statusId: 3,
-      statusDescription: "Accepted",
-      time: "0.01",
-      memory: "256"
-    };
-  } catch (err) {
-    return {
-      stdout: "",
-      stderr: err.message,
-      compileOutput: err.message,
-      statusId: 11,
-      statusDescription: "Runtime Error: " + err.message,
-      time: "0",
-      memory: "0"
-    };
   }
 };
 
 // runs one candidate's code against ALL of a question's test cases,
 // returns whether it passed overall plus per-test-case detail
-export const gradeSubmission = async (sourceCode, languageId, testCases) => {
+export const gradeSubmission = async (sourceCode, compiler, testCases) => {
   const results = [];
 
   for (const testCase of testCases) {
-    const run = await runOnce(sourceCode, languageId, testCase.input);
+    const run = await runOnce(sourceCode, compiler, testCase.input);
 
-    const passed = run.statusId === 3 && run.stdout === testCase.expectedOutput.trim();
+    // exit code 0 = program ran without crashing; then compare output to expected
+    const passed =
+      run.exitCode === 0 &&
+      run.stdout === testCase.expectedOutput.replace(/\r\n/g, "\n").trim();
 
     results.push({
       input: testCase.input,
       expectedOutput: testCase.expectedOutput,
       actualOutput: run.stdout,
       passed,
-      statusDescription: run.statusDescription,
+      statusDescription: run.status,
       stderr: run.stderr
     });
   }
